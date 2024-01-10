@@ -13,9 +13,10 @@ type Option func(options Options) Options
 
 type Options struct {
 	shell string
+	env   []string
 }
 
-func NewOptions(options ...Option) Options {
+func NewOptions(options ...Option) (Options, error) {
 	opt := Options{
 		shell: os.Getenv("SHELL"),
 	}
@@ -24,14 +25,19 @@ func NewOptions(options ...Option) Options {
 		opt = op(opt)
 	}
 
-	return opt
+	if err := validateOpts(opt); err != nil {
+		return Options{}, err
+	}
+
+	return opt, nil
 }
 
-func (opt Options) Shell() (string, error) {
-	if opt.shell == "" {
-		return "", ErrNoShell
-	}
-	return opt.shell, nil
+func (opt Options) Shell() string {
+	return opt.shell
+}
+
+func (opt Options) Env() []string {
+	return opt.env
 }
 
 func WithShell(s string) Option {
@@ -39,4 +45,25 @@ func WithShell(s string) Option {
 		options.shell = s
 		return options
 	}
+}
+
+func WithEnv(envVar string) Option {
+	return func(opts Options) Options {
+		opts.env = append(opts.env, envVar)
+		return opts
+	}
+}
+
+func WithEnvVariables(evs []string) Option {
+	return func(opts Options) Options {
+		opts.env = evs
+		return opts
+	}
+}
+
+func validateOpts(options Options) error {
+	if options.shell == "" {
+		return ErrNoShell
+	}
+	return nil
 }
